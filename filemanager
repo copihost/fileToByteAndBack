@@ -38,21 +38,23 @@ def openDest():
 def unpackFile():
     fi = open(filePath, 'rb')
     chunk = fi.read(CHUNK_SIZE)
-    x = 0
+    iterations = 0
     progressPercent = 0
     while chunk: #loop until the chunk is empty (the file is exhausted)
         
 
         
-        t2 = open(f"{destPath}/{x}", "wb")
+        t2 = open(f"{destPath}/{iterations}", "wb")
         t2.write(bytes(hashlib.md5(chunk).hexdigest(), encoding="utf-8"))
-        print(len(bytes(hashlib.md5(chunk).hexdigest(), encoding="utf-8")))
+        if len(bytes(hashlib.md5(chunk).hexdigest(), encoding="utf-8")) != 32:
+            print("hash did not equal 32 bytes wait for update for me to fix")
+            exit()
         t2.write(chunk)
         t2.close()
 
         chunk = fi.read(CHUNK_SIZE) #read the next chunk
-        x += 1
-        progressPercent = int(round(x/barSize,2)*100)
+        iterations += 1
+        progressPercent = int(round(iterations/barSize,2)*100)
         progress['value'] = progressPercent
         root.update_idletasks()
         if progressPercent == 100:
@@ -64,18 +66,32 @@ def unpackFile():
 
 def packFile():
     entries = os.scandir(storagePath)
+    entryIntList = []
+    for entry in entries:
+        try:
+            entryIntList.append(int(entry.name))
+        except ValueError:
+            finishedText.config(text="error make sure your directory only has the byte sized files in it")
+            break
+    sortedEntryIntList = sorted(entryIntList) 
+    progressPercent = 0
     suffix = filePath.split('.')[-1]
+    iterations = 0
     with open(f"{destPath}/final.{suffix}", "wb") as destFile:
-        for entry in entries:
-            with open(f"{storagePath}/{entry.name}", "rb") as cur_file:
+        for entry in sortedEntryIntList:
+            iterations += 1
+            progressPercent = int(round(iterations/barSize,2)*100)
+            progress['value'] = progressPercent
+            root.update_idletasks()
+            with open(f"{storagePath}/{entry}", "rb") as cur_file:
                 hashBi = cur_file.read(32)
                 testBi = cur_file.read()
-                x = bytes(hashlib.md5(testBi).hexdigest(), encoding="utf-8")
-                if hashBi == x:
+                testBiFormatted = bytes(hashlib.md5(testBi).hexdigest(), encoding="utf-8")
+                if hashBi == testBiFormatted:
                     cur_file.seek(32)
                     destFile.write(cur_file.read())
     mainButton.config(text="done", command=done)
-    finishedText.config(text='file converted back "hopefully"')
+    finishedText.config(text='file converted back(hopefully)')
 
 def done():
     exit()
