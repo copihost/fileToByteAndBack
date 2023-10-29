@@ -1,0 +1,108 @@
+import os
+import math
+from tkinter import *
+from tkinter.ttk import *
+from tkinter import filedialog
+import hashlib
+
+
+
+def openFile():
+    global filePath
+    filePath = ""
+    filePath = filedialog.askopenfilename()
+    if filePath:
+        global barSize
+        barSize = math.ceil(os.path.getsize(filePath) / 1048576)
+        finishedText.config(text=("now find the directory where you want to dump the files"))
+        mainButton.config(command=openDest, text="dest dir")
+
+
+def openDest():
+    global destPath
+    destPath = ""
+    global storagePath
+    destPath = filedialog.askdirectory()
+    if destPath:
+        if loopback:
+            finishedText.config(text="now press start to return your file to its original state")
+            mainButton.config(text="start",command=packFile)
+        else:
+            finishedText.config(text="now press start to make your file into byte sized pieces")
+            mainButton.config(text="start",command=unpackFile)
+            storagePath = destPath
+        
+
+
+
+def unpackFile():
+    fi = open(filePath, 'rb')
+    chunk = fi.read(CHUNK_SIZE)
+    x = 0
+    progressPercent = 0
+    while chunk: #loop until the chunk is empty (the file is exhausted)
+        
+
+        
+        t2 = open(f"{destPath}/{x}", "wb")
+        t2.write(bytes(hashlib.md5(chunk).hexdigest(), encoding="utf-8"))
+        print(len(bytes(hashlib.md5(chunk).hexdigest(), encoding="utf-8")))
+        t2.write(chunk)
+        t2.close()
+
+        chunk = fi.read(CHUNK_SIZE) #read the next chunk
+        x += 1
+        progressPercent = int(round(x/barSize,2)*100)
+        progress['value'] = progressPercent
+        root.update_idletasks()
+        if progressPercent == 100:
+            global loopback
+            loopback = True
+            mainButton.config(text="select dest", command=openDest)
+            finishedText.config(text="press the button to select the directory you want the finished file in")
+    fi.close()
+
+def packFile():
+    entries = os.scandir(storagePath)
+    suffix = filePath.split('.')[-1]
+    with open(f"{destPath}/final.{suffix}", "wb") as destFile:
+        for entry in entries:
+            with open(f"{storagePath}/{entry.name}", "rb") as cur_file:
+                hashBi = cur_file.read(32)
+                testBi = cur_file.read()
+                x = bytes(hashlib.md5(testBi).hexdigest(), encoding="utf-8")
+                if hashBi == x:
+                    cur_file.seek(32)
+                    destFile.write(cur_file.read())
+    mainButton.config(text="done", command=done)
+    finishedText.config(text='file converted back "hopefully"')
+
+def done():
+    exit()
+
+
+
+CHUNK_SIZE = 1048576
+progBar = 0
+progBarPercent = 0
+# creating tkinter window 
+root = Tk() 
+root.geometry("500x200")
+root.title("byte sized files")
+root.columnconfigure(5)
+loopback = False
+# Progress bar widget 
+progress = Progressbar(root, orient = HORIZONTAL, length = 100, mode = 'determinate') 
+   
+mainButton = Button(root, text = "find file", command = openFile)
+T = Text(root,height=50,width=30)
+finishedText = Label(root,text="press find file and locate the file you want to send")
+finishedText.pack()
+mainButton.pack(pady=10)
+progress.pack(pady = 10) 
+
+
+
+  
+# infinite loop 
+mainloop() 
