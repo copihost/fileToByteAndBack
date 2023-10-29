@@ -40,11 +40,14 @@ def unpackFile():
     chunk = fi.read(CHUNK_SIZE)
     iterations = 0
     progressPercent = 0
+    global totalIterations 
     while chunk: #loop until the chunk is empty (the file is exhausted)
         
 
         
         t2 = open(f"{destPath}/{iterations}", "wb")
+
+        totalIterations = iterations
         t2.write(bytes(hashlib.md5(chunk).hexdigest(), encoding="utf-8"))
         if len(bytes(hashlib.md5(chunk).hexdigest(), encoding="utf-8")) != 32:
             print("hash did not equal 32 bytes wait for update for me to fix")
@@ -65,20 +68,11 @@ def unpackFile():
     fi.close()
 
 def packFile():
-    entries = os.scandir(storagePath)
-    entryIntList = []
-    for entry in entries:
-        try:
-            entryIntList.append(int(entry.name))
-        except ValueError:
-            finishedText.config(text="error make sure your directory only has the byte sized files in it")
-            break
-    sortedEntryIntList = sorted(entryIntList) 
     progressPercent = 0
     suffix = filePath.split('.')[-1]
     iterations = 0
     with open(f"{destPath}/final.{suffix}", "wb") as destFile:
-        for entry in sortedEntryIntList:
+        for entry in range(totalIterations+1):
             iterations += 1
             progressPercent = int(round(iterations/barSize,2)*100)
             progress['value'] = progressPercent
@@ -116,6 +110,12 @@ finishedText = Label(root,text="press find file and locate the file you want to 
 finishedText.pack()
 mainButton.pack(pady=10)
 progress.pack(pady = 10) 
+
+
+
+  
+# infinite loop 
+mainloop() 
 
 
 
